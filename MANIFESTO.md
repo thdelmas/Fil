@@ -24,6 +24,8 @@ We **ask** for 30 seconds of your morning — a quick symbol-matching game, a ta
 
 We **watch** for the drift — the moment your personal pattern starts shifting away from your baseline. Not population averages. Your normal. Your thread.
 
+We **catch you** when you fall — detecting impacts, alerting your emergency contacts, and answering incoming calls on speaker so you stay connected even when you can't reach the phone.
+
 We **speak up** when the thread frays — days before you'd notice, weeks before your next appointment. Clear, calm, factual. Never alarming. Never diagnosing. Just: "Your gait symmetry and typing speed have shifted this week. Here's what the data shows."
 
 ## Our Principles
@@ -63,6 +65,8 @@ Fil is a Bios companion app. It reads from Bios's sensor pipeline (10 adapters, 
 | Sleep architecture | Bios (Health Connect) | Fragmentation, fatigue signature |
 | Activity level | Bios (steps, active minutes) | Fatigue-driven activity decline |
 | Screen time pattern | UsageStats | Cognitive fatigue, engagement drop |
+| Fall detection | Phone/watch accelerometer + gyroscope | Falls, near-falls, stumble frequency |
+| Fall frequency trend | Phone/watch accelerometer | Increasing fall rate as early relapse signal |
 
 ### Active Micro-Tests (30 seconds/morning)
 
@@ -72,10 +76,26 @@ Fil is a Bios companion app. It reads from Bios's sensor pipeline (10 adapters, 
 | Finger Tapping | Fine motor dexterity | 9-Hole Peg Test |
 | Contrast Letters | Visual acuity changes | Low-contrast letter acuity (optic neuritis) |
 
+### Safety & Autonomy
+
+| Feature | Trigger | What it does |
+|---------|---------|--------------|
+| Fall alert | Free-fall + impact + stillness detected | Notifies emergency contacts if no movement after 30s |
+| Auto-answer call | Whitelisted contact + no answer after 10s | Answers on speaker so the person can talk without reaching the phone |
+| Auto-answer (fall) | Fall detected + incoming whitelisted call | Answers immediately on speaker |
+| Auto-answer (bad day) | User toggles "bad day" mode | Lowers timer, auto-answers all whitelisted calls on speaker |
+| Watch tap answer | Smartwatch tap while phone rings | Answers call on phone speaker from the wrist |
+
+Auto-answer safeguards:
+- Only applies to a user-defined whitelist — never unknown numbers
+- Plays a brief tone before connecting ("Call from Marie is being answered on speaker")
+- Can be disabled instantly via watch or voice
+- "Bad day" mode resets at midnight
+
 ### Detection Engine
 
 - **Personal baseline**: 14-day rolling window, same as W2F/Bios
-- **Multivariate drift**: LSDD or EGADS on [gait, typing, cognition, dexterity, HRV, sleep] feature vector
+- **Multivariate drift**: LSDD or EGADS on [gait, typing, cognition, dexterity, HRV, sleep, fall frequency] feature vector
 - **Relapse risk score**: 0-100 composite, relative to personal normal
 - **Uhthoff's correlation**: ambient temperature + symptom onset tracking
 

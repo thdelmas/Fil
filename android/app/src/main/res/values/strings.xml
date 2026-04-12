@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Fil</string>
+    <string name="fall_detection_channel">Fall Detection</string>
+    <string name="fall_detection_running">Fall detection is active</string>
+    <string name="emergency_sms_default">URGENT: I may have fallen and need help. This is an automatic alert from Fil.</string>
+</resources>
