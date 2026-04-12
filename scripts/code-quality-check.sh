@@ -2,8 +2,8 @@
 # Code quality check script for Fil
 #
 # Checks:
-# 1. Validates commit message format ([patch], [minor], [major])
-# 2. Automatically updates version based on commit prefix
+# 1. Validates commit message format (Conventional Commits)
+# 2. Automatically updates version based on commit type
 # 3. Ensures file length stays under 500 lines
 # 4. Ensures TODO comments are categorized
 # 5. Compilation check (when gradlew is available)
@@ -32,31 +32,47 @@ validate_commit_message() {
 
   # Skip validation for merge commits
   if [ -f "$REPO_ROOT/.git/MERGE_HEAD" ]; then
-    echo -e "${GREEN}✓ Merge commit detected - skipping version prefix check${NC}"
+    echo -e "${GREEN}✓ Merge commit detected - skipping commit message check${NC}"
     return 0
   fi
 
   COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
+  FIRST_LINE=$(head -1 "$COMMIT_MSG_FILE")
 
-  if echo "$COMMIT_MSG" | head -1 | grep -qE '^\[(patch|minor|major)\]'; then
-    echo -e "${GREEN}✓ Commit message has valid version prefix${NC}"
+  # Conventional Commits: type(optional-scope): description
+  # With optional ! for breaking changes: feat!: or feat(scope)!:
+  if echo "$FIRST_LINE" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?!?:'; then
+    echo -e "${GREEN}✓ Commit message follows Conventional Commits${NC}"
     return 0
   fi
 
-  echo -e "${RED}✗ Error: Commit message must start with a version prefix${NC}"
+  echo -e "${RED}✗ Error: Commit message must follow Conventional Commits${NC}"
   echo ""
-  echo "Valid prefixes:"
-  echo -e "  ${YELLOW}[patch]${NC} - Bug fixes, small changes (0.0.X)"
-  echo -e "  ${YELLOW}[minor]${NC} - New features, backwards compatible (0.X.0)"
-  echo -e "  ${YELLOW}[major]${NC} - Breaking changes (X.0.0)"
+  echo "Format: type(optional-scope): description"
   echo ""
-  echo "Example:"
-  echo -e "  ${GREEN}[patch] Fix gait asymmetry threshold edge case${NC}"
-  echo -e "  ${GREEN}[minor] Add Symbol-Digit micro-test${NC}"
-  echo -e "  ${GREEN}[major] Redesign relapse detection engine${NC}"
+  echo "Types (with version impact):"
+  echo -e "  ${YELLOW}feat${NC}     - New feature                         → ${CYAN}minor${NC} bump"
+  echo -e "  ${YELLOW}fix${NC}      - Bug fix                             → ${CYAN}patch${NC} bump"
+  echo -e "  ${YELLOW}perf${NC}     - Performance improvement             → ${CYAN}patch${NC} bump"
+  echo -e "  ${YELLOW}docs${NC}     - Documentation only"
+  echo -e "  ${YELLOW}style${NC}    - Formatting, no code change"
+  echo -e "  ${YELLOW}refactor${NC} - Code change, no new feature or fix"
+  echo -e "  ${YELLOW}test${NC}     - Adding or fixing tests"
+  echo -e "  ${YELLOW}build${NC}    - Build system or dependencies"
+  echo -e "  ${YELLOW}ci${NC}       - CI configuration"
+  echo -e "  ${YELLOW}chore${NC}    - Other changes"
+  echo -e "  ${YELLOW}revert${NC}   - Revert a previous commit"
+  echo ""
+  echo "Breaking changes (→ ${CYAN}major${NC} bump): add ! before the colon"
+  echo ""
+  echo "Examples:"
+  echo -e "  ${GREEN}fix: correct gait asymmetry threshold edge case${NC}"
+  echo -e "  ${GREEN}feat: add Symbol-Digit micro-test${NC}"
+  echo -e "  ${GREEN}feat(fall): add emergency countdown screen${NC}"
+  echo -e "  ${GREEN}feat!: redesign relapse detection engine${NC}"
   echo ""
   echo "Your commit message was:"
-  echo -e "  ${RED}$(head -1 "$COMMIT_MSG_FILE")${NC}"
+  echo -e "  ${RED}${FIRST_LINE}${NC}"
   echo ""
   return 1
 }
@@ -121,11 +137,14 @@ update_version() {
   while IFS= read -r commit_msg; do
     [ -z "$commit_msg" ] && continue
 
-    if echo "$commit_msg" | grep -qE '^\[major\]'; then
+    # Breaking change: type! or type(scope)! → major
+    if echo "$commit_msg" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-zA-Z0-9_-]+\))?!:'; then
       MAJOR_COUNT=$((MAJOR_COUNT + 1))
-    elif echo "$commit_msg" | grep -qE '^\[minor\]'; then
+    # feat → minor
+    elif echo "$commit_msg" | grep -qE '^feat(\([a-zA-Z0-9_-]+\))?:'; then
       MINOR_COUNT=$((MINOR_COUNT + 1))
-    elif echo "$commit_msg" | grep -qE '^\[patch\]'; then
+    # fix, perf → patch
+    elif echo "$commit_msg" | grep -qE '^(fix|perf)(\([a-zA-Z0-9_-]+\))?:'; then
       PATCH_COUNT=$((PATCH_COUNT + 1))
     fi
   done <<< "$(printf "%s\n%s" "$COMMITS" "$CURRENT_COMMIT_MSG")"
