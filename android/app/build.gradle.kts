@@ -55,4 +55,7 @@ dependencies {
     implementation("androidx.datastore:datastore-preferences:1.1.2")
 
     implementation("com.google.android.gms:play-services-location:21.3.0")
+
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:2.0.21")
 }

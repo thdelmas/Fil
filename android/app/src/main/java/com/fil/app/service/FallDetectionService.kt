@@ -12,6 +12,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.fil.app.FilApp
 import com.fil.app.R
+import com.fil.app.analysis.FallDetectionAlgorithm
 import com.fil.app.ui.MainActivity
 import com.fil.app.ui.emergency.EmergencyCountdownActivity
 import kotlin.math.sqrt
@@ -19,21 +20,14 @@ import kotlin.math.sqrt
 /**
  * Always-on foreground service that monitors the accelerometer for fall events.
  *
- * Detection algorithm:
- * 1. Free-fall phase: acceleration magnitude drops below FREEFALL_THRESHOLD (~0.5g)
- * 2. Impact phase: within IMPACT_WINDOW_MS, magnitude spikes above IMPACT_THRESHOLD (~3g)
- * 3. Post-fall stillness: within STILLNESS_WINDOW_MS, magnitude stays near 1g (lying still)
- *
- * When all three phases are detected, launches the emergency countdown activity.
+ * Detection is delegated to [FallDetectionAlgorithm] which is independently testable.
+ * When a fall is detected, launches the emergency countdown activity.
  */
 class FallDetectionService : Service(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
     private var accelerometer: Sensor? = null
-
-    private var freefallDetectedAt: Long = 0
-    private var impactDetectedAt: Long = 0
-    private var lastPeakAccel: Float = 0f
+    private val algorithm = FallDetectionAlgorithm()
 
     override fun onCreate() {
         super.onCreate()
@@ -77,60 +71,19 @@ class FallDetectionService : Service(), SensorEventListener {
         val magnitude = sqrt(x * x + y * y + z * z)
         val now = System.currentTimeMillis()
 
-        // Phase 1: Free-fall detection (magnitude drops close to 0g)
-        if (magnitude < FREEFALL_THRESHOLD) {
-            freefallDetectedAt = now
-            return
-        }
-
-        // Phase 2: Impact detection (high-g spike after free-fall)
-        if (freefallDetectedAt > 0 && magnitude > IMPACT_THRESHOLD) {
-            val timeSinceFreefall = now - freefallDetectedAt
-            if (timeSinceFreefall in 1..IMPACT_WINDOW_MS) {
-                impactDetectedAt = now
-                lastPeakAccel = magnitude
-                return
-            }
-        }
-
-        // Phase 3: Post-fall stillness (near 1g, person lying on ground)
-        if (impactDetectedAt > 0) {
-            val timeSinceImpact = now - impactDetectedAt
-            if (timeSinceImpact > STILLNESS_DELAY_MS && timeSinceImpact < STILLNESS_WINDOW_MS) {
-                val nearOneG = magnitude in STILLNESS_LOW..STILLNESS_HIGH
-                if (nearOneG) {
-                    onFallDetected()
-                    return
-                }
-            }
-            // Reset if stillness window expired without detection
-            if (timeSinceImpact > STILLNESS_WINDOW_MS) {
-                resetState()
-            }
-        }
-
-        // Reset freefall if too much time passed without impact
-        if (freefallDetectedAt > 0 && now - freefallDetectedAt > IMPACT_WINDOW_MS) {
-            freefallDetectedAt = 0
+        if (algorithm.processSample(magnitude, now)) {
+            onFallDetected()
         }
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     private fun onFallDetected() {
-        resetState()
-
         val intent = Intent(this, EmergencyCountdownActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-            putExtra(EXTRA_PEAK_ACCEL, lastPeakAccel)
+            putExtra(EXTRA_PEAK_ACCEL, algorithm.lastPeakAccel)
         }
         startActivity(intent)
-    }
-
-    private fun resetState() {
-        freefallDetectedAt = 0
-        impactDetectedAt = 0
-        lastPeakAccel = 0f
     }
 
     private fun buildNotification(): Notification {
@@ -160,14 +113,5 @@ class FallDetectionService : Service(), SensorEventListener {
         const val NOTIFICATION_ID = 1
         const val ACTION_STOP = "com.fil.app.STOP_FALL_DETECTION"
         const val EXTRA_PEAK_ACCEL = "peak_accel"
-
-        // Thresholds tuned for MS patients (less aggressive movement than healthy adults)
-        private const val FREEFALL_THRESHOLD = 4.9f   // ~0.5g in m/s^2
-        private const val IMPACT_THRESHOLD = 29.4f     // ~3g in m/s^2
-        private const val IMPACT_WINDOW_MS = 500L      // Max time between freefall and impact
-        private const val STILLNESS_DELAY_MS = 500L    // Wait before checking stillness
-        private const val STILLNESS_WINDOW_MS = 3000L  // Must be still within 3s of impact
-        private const val STILLNESS_LOW = 8.8f         // ~0.9g
-        private const val STILLNESS_HIGH = 10.8f       // ~1.1g
     }
 }

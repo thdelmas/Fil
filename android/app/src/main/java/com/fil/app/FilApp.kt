@@ -32,12 +32,22 @@ class FilApp : Application() {
             vibrationPattern = longArrayOf(0, 500, 200, 500, 200, 500)
         }
 
+        val gaitChannel = NotificationChannel(
+            CHANNEL_GAIT_ANALYSIS,
+            getString(R.string.gait_analysis_channel),
+            NotificationManager.IMPORTANCE_LOW
+        ).apply {
+            description = "Persistent notification while gait analysis is active"
+        }
+
         manager.createNotificationChannel(fallChannel)
         manager.createNotificationChannel(alertChannel)
+        manager.createNotificationChannel(gaitChannel)
     }
 
     companion object {
         const val CHANNEL_FALL_DETECTION = "fall_detection"
         const val CHANNEL_FALL_ALERT = "fall_alert"
+        const val CHANNEL_GAIT_ANALYSIS = "gait_analysis"
     }
 }

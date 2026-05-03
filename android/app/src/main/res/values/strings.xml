@@ -4,4 +4,14 @@
     <string name="fall_detection_channel">Fall Detection</string>
     <string name="fall_detection_running">Fall detection is active</string>
     <string name="emergency_sms_default">URGENT: I may have fallen and need help. This is an automatic alert from Fil.</string>
+    <string name="gait_analysis_channel">Gait Analysis</string>
+    <string name="gait_analysis_running">Gait analysis is active</string>
+
+    <string name="contribution_title">Three ways to help Fil keep going</string>
+    <string name="contribution_body">Fil is made by one person. If it has been useful to you, here are three ways you can participate.</string>
+    <string name="contribution_action_donate">Donate</string>
+    <string name="contribution_action_review">Leave a review</string>
+    <string name="contribution_action_feedback">Tell us what is not working</string>
+    <string name="contribution_action_dismiss">Maybe later</string>
+    <string name="contribution_feedback_subject">Fil feedback</string>
 </resources>
