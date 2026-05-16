@@ -12,8 +12,8 @@ android {
         applicationId = "com.fil.app"
         minSdk = 29
         targetSdk = 35
-        versionCode = 200
-        versionName = "0.2.0"
+        versionCode = 300
+        versionName = "0.3.0"
     }
 
     buildTypes {
